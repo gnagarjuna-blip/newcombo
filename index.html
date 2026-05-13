@@ -3,70 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roulette Predictor Pro</title>
+    <title>Roulette Predictor - Reciprocal Mode</title>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { max-width: 900px; width: 100%; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #e0e0e0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { max-width: 1000px; width: 100%; }
         
-        /* Roulette Table Styling */
-        .roulette-table { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; background: #004d00; padding: 10px; border: 4px solid #555; border-radius: 8px; margin-bottom: 20px; }
-        .cell { aspect-ratio: 1/1.5; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); }
-        .red { background: #d00; }
-        .black { background: #000; }
-        .green { background: #060; grid-row: span 3; }
-        .highlight { border: 3px solid #ff0; box-shadow: 0 0 15px #ff0; }
+        /* European Roulette Table */
+        .roulette-table { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; background: #064e3b; padding: 15px; border: 5px solid #3d3d3d; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .cell { aspect-ratio: 1/1.4; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; border-radius: 4px; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); }
+        .red { background: #b91c1c; }
+        .black { background: #171717; }
+        .green { background: #15803d; grid-row: span 3; aspect-ratio: auto; }
+        .highlight { border: 3px solid #facc15; box-shadow: 0 0 20px #facc15; transform: scale(1.05); z-index: 10; color: #fff; }
 
-        /* UI Elements */
-        .panel { background: #333; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444; }
-        textarea { width: 100%; height: 100px; background: #222; color: #0f0; border: 1px solid #555; padding: 10px; box-sizing: border-box; }
-        button { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
-        button:hover { background: #218838; }
-        .prediction-box { font-size: 1.5rem; color: #ffeb3b; margin: 10px 0; min-height: 1.5em; }
-        .history { color: #aaa; font-size: 0.9rem; }
+        .panel { background: #1f2937; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #374151; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        textarea { width: 100%; height: 120px; background: #111827; color: #10b981; border: 1px solid #4b5563; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 1rem; resize: none; }
+        button { background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin-top: 15px; font-weight: 600; transition: background 0.2s; }
+        button:hover { background: #1d4ed8; }
+        
+        .prediction-box { font-size: 1.8rem; color: #fbbf24; margin: 15px 0; text-align: center; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px; }
+        .history-tag { display: inline-block; padding: 4px 8px; background: #374151; border-radius: 4px; margin-right: 5px; margin-bottom: 5px; font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Roulette Sequence Predictor</h2>
+    <h1 style="text-align: center; color: #fff;">Roulette Predictive Analysis</h1>
 
     <div id="table" class="roulette-table">
         <div class="cell green" onclick="inputNumber(0)">0</div>
         </div>
 
     <div class="panel">
-        <h3>Live Prediction</h3>
-        <div class="prediction-box" id="predictionDisplay">Waiting for input...</div>
-        <div class="history" id="historyDisplay">History: None</div>
+        <div class="prediction-box" id="predictionDisplay">Select a number to begin...</div>
+        <div id="historyDisplay" style="margin-top: 10px;"></div>
     </div>
 
     <div class="panel">
-        <h3>Bulk Data / Simulation Mode</h3>
-        <p>Paste numbers separated by commas or spaces (e.g., 1, 14, 2, 35):</p>
-        <textarea id="bulkInput" placeholder="Enter data here..."></textarea>
-        <button onclick="runSimulation()">Run Simulation & Test Accuracy</button>
-        <div id="simResults" style="margin-top: 15px; color: #00ffcc;"></div>
+        <h3>Bulk Simulation & Backtesting</h3>
+        <p style="font-size: 0.9rem; color: #9ca3af;">Enter data (e.g. 1, 7, 8, 2, 14...) to test sequence accuracy based on your custom pairs.</p>
+        <textarea id="bulkInput" placeholder="Paste roulette history here..."></textarea>
+        <button onclick="runSimulation()">Run Backtest</button>
+        <div id="simResults" class="stats-grid"></div>
     </div>
 </div>
 
 <script>
-    // Data Mapping based on your attachment
-    // Excludes multiples of 3 as "triggers" per your -1 notation
-    const predictionMap = {
-        1: [7, 18], 2: [8, 17], 4: [10, 21], 5: [11, 20],
-        7: [13, 24], 8: [14, 23], 10: [16, 27], 11: [17, 26],
-        13: [19, 30], 14: [20, 29], 16: [22, 33], 17: [23, 32],
-        19: [25, 36], 20: [26, 35], 22: [28, 27], 23: [29],
-        25: [31], 26: [32], 28: [34], 29: [35],
-        31: [25], 32: [26], 34: [28], 35: [29]
-    };
+    // Updated Logic: Based on your request to use pairs (1 predicts 7, 7 predicts 1, etc.)
+    // Multiples of 3 (-1) are excluded as triggers.
+    const rawPairs = [
+        [1, 7], [1, 8], [2, 8], [4, 10], [5, 11], [7, 13], [8, 14], 
+        [10, 16], [11, 17], [13, 19], [14, 20], [16, 22], [17, 23], 
+        [19, 25], [20, 26], [22, 28], [23, 29], [25, 31], [26, 32], 
+        [28, 34], [29, 35], [31, 25], [32, 26], [34, 28], [35, 29]
+    ];
+
+    // Build the prediction map dynamically (Mirror/Reciprocal Logic)
+    const predictionMap = {};
+    rawPairs.forEach(([a, b]) => {
+        if (!predictionMap[a]) predictionMap[a] = new Set();
+        if (!predictionMap[b]) predictionMap[b] = new Set();
+        predictionMap[a].add(b);
+        predictionMap[b].add(a);
+    });
 
     const reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
     let history = [];
 
-    // Initialize Table
     function initTable() {
         const table = document.getElementById('table');
+        // Arrange numbers in 3 rows like a real table
         for (let i = 1; i <= 36; i++) {
             const div = document.createElement('div');
             div.className = `cell ${reds.includes(i) ? 'red' : 'black'}`;
@@ -86,24 +93,21 @@
         const display = document.getElementById('predictionDisplay');
         const histDisplay = document.getElementById('historyDisplay');
         
-        // Remove old highlights
         document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
-        
-        // Highlight current
         document.getElementById(`cell-${lastNum}`)?.classList.add('highlight');
 
-        const predictions = predictionMap[lastNum];
-        if (predictions) {
-            display.innerText = `Last: ${lastNum} -> Predict: ${predictions.join(', ')}`;
-            // Highlight predictions
+        const predictions = predictionMap[lastNum] ? Array.from(predictionMap[lastNum]) : null;
+        
+        if (predictions && predictions.length > 0) {
+            display.innerHTML = `Input: ${lastNum} <span style="color:#fff">➔</span> Predict: <span style="color:#60a5fa">${predictions.join(', ')}</span>`;
             predictions.forEach(p => {
                 document.getElementById(`cell-${p}`)?.classList.add('highlight');
             });
         } else {
-            display.innerText = `Last: ${lastNum} (No Prediction / -1 rule)`;
+            display.innerText = `Input: ${lastNum} (No Data / -1 Rule)`;
         }
 
-        histDisplay.innerText = `History: ${history.slice(-10).join(' <- ')}`;
+        histDisplay.innerHTML = history.slice(-15).map(n => `<span class="history-tag">${n}</span>`).join('');
     }
 
     function runSimulation() {
@@ -111,7 +115,7 @@
         const nums = input.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
         
         let hits = 0;
-        let totalPredictions = 0;
+        let totalOpportunities = 0;
 
         for (let i = 0; i < nums.length - 1; i++) {
             const current = nums[i];
@@ -119,20 +123,24 @@
             const predicted = predictionMap[current];
 
             if (predicted) {
-                totalPredictions++;
-                if (predicted.includes(next)) {
+                totalOpportunities++;
+                if (predicted.has(next)) {
                     hits++;
                 }
             }
         }
 
-        const accuracy = totalPredictions > 0 ? ((hits / totalPredictions) * 100).toFixed(2) : 0;
+        const accuracy = totalOpportunities > 0 ? ((hits / totalOpportunities) * 100).toFixed(2) : 0;
+        
         document.getElementById('simResults').innerHTML = `
-            <strong>Simulation Results:</strong><br>
-            Total Numbers Scanned: ${nums.length}<br>
-            Opportunities Found: ${totalPredictions}<br>
-            Successful Hits: ${hits}<br>
-            <strong>Accuracy: ${accuracy}%</strong>
+            <div class="panel" style="margin-bottom:0">
+                <div style="font-size: 0.8rem; color: #9ca3af;">TOTAL PREDICTIONS</div>
+                <div style="font-size: 1.5rem; font-weight: bold;">${totalOpportunities}</div>
+            </div>
+            <div class="panel" style="margin-bottom:0">
+                <div style="font-size: 0.8rem; color: #9ca3af;">HITS / ACCURACY</div>
+                <div style="font-size: 1.5rem; font-weight: bold; color: #10b981;">${hits} (${accuracy}%)</div>
+            </div>
         `;
     }
 
