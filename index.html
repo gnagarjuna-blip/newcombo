@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roulette Predictor Pro</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { max-width: 900px; width: 100%; }
+        
+        /* Roulette Table Styling */
+        .roulette-table { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; background: #004d00; padding: 10px; border: 4px solid #555; border-radius: 8px; margin-bottom: 20px; }
+        .cell { aspect-ratio: 1/1.5; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); }
+        .red { background: #d00; }
+        .black { background: #000; }
+        .green { background: #060; grid-row: span 3; }
+        .highlight { border: 3px solid #ff0; box-shadow: 0 0 15px #ff0; }
+
+        /* UI Elements */
+        .panel { background: #333; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444; }
+        textarea { width: 100%; height: 100px; background: #222; color: #0f0; border: 1px solid #555; padding: 10px; box-sizing: border-box; }
+        button { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        button:hover { background: #218838; }
+        .prediction-box { font-size: 1.5rem; color: #ffeb3b; margin: 10px 0; min-height: 1.5em; }
+        .history { color: #aaa; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Roulette Sequence Predictor</h2>
+
+    <div id="table" class="roulette-table">
+        <div class="cell green" onclick="inputNumber(0)">0</div>
+        </div>
+
+    <div class="panel">
+        <h3>Live Prediction</h3>
+        <div class="prediction-box" id="predictionDisplay">Waiting for input...</div>
+        <div class="history" id="historyDisplay">History: None</div>
+    </div>
+
+    <div class="panel">
+        <h3>Bulk Data / Simulation Mode</h3>
+        <p>Paste numbers separated by commas or spaces (e.g., 1, 14, 2, 35):</p>
+        <textarea id="bulkInput" placeholder="Enter data here..."></textarea>
+        <button onclick="runSimulation()">Run Simulation & Test Accuracy</button>
+        <div id="simResults" style="margin-top: 15px; color: #00ffcc;"></div>
+    </div>
+</div>
+
+<script>
+    // Data Mapping based on your attachment
+    // Excludes multiples of 3 as "triggers" per your -1 notation
+    const predictionMap = {
+        1: [7, 18], 2: [8, 17], 4: [10, 21], 5: [11, 20],
+        7: [13, 24], 8: [14, 23], 10: [16, 27], 11: [17, 26],
+        13: [19, 30], 14: [20, 29], 16: [22, 33], 17: [23, 32],
+        19: [25, 36], 20: [26, 35], 22: [28, 27], 23: [29],
+        25: [31], 26: [32], 28: [34], 29: [35],
+        31: [25], 32: [26], 34: [28], 35: [29]
+    };
+
+    const reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+    let history = [];
+
+    // Initialize Table
+    function initTable() {
+        const table = document.getElementById('table');
+        for (let i = 1; i <= 36; i++) {
+            const div = document.createElement('div');
+            div.className = `cell ${reds.includes(i) ? 'red' : 'black'}`;
+            div.id = `cell-${i}`;
+            div.innerText = i;
+            div.onclick = () => inputNumber(i);
+            table.appendChild(div);
+        }
+    }
+
+    function inputNumber(num) {
+        history.push(num);
+        updateUI(num);
+    }
+
+    function updateUI(lastNum) {
+        const display = document.getElementById('predictionDisplay');
+        const histDisplay = document.getElementById('historyDisplay');
+        
+        // Remove old highlights
+        document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
+        
+        // Highlight current
+        document.getElementById(`cell-${lastNum}`)?.classList.add('highlight');
+
+        const predictions = predictionMap[lastNum];
+        if (predictions) {
+            display.innerText = `Last: ${lastNum} -> Predict: ${predictions.join(', ')}`;
+            // Highlight predictions
+            predictions.forEach(p => {
+                document.getElementById(`cell-${p}`)?.classList.add('highlight');
+            });
+        } else {
+            display.innerText = `Last: ${lastNum} (No Prediction / -1 rule)`;
+        }
+
+        histDisplay.innerText = `History: ${history.slice(-10).join(' <- ')}`;
+    }
+
+    function runSimulation() {
+        const input = document.getElementById('bulkInput').value;
+        const nums = input.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+        
+        let hits = 0;
+        let totalPredictions = 0;
+
+        for (let i = 0; i < nums.length - 1; i++) {
+            const current = nums[i];
+            const next = nums[i + 1];
+            const predicted = predictionMap[current];
+
+            if (predicted) {
+                totalPredictions++;
+                if (predicted.includes(next)) {
+                    hits++;
+                }
+            }
+        }
+
+        const accuracy = totalPredictions > 0 ? ((hits / totalPredictions) * 100).toFixed(2) : 0;
+        document.getElementById('simResults').innerHTML = `
+            <strong>Simulation Results:</strong><br>
+            Total Numbers Scanned: ${nums.length}<br>
+            Opportunities Found: ${totalPredictions}<br>
+            Successful Hits: ${hits}<br>
+            <strong>Accuracy: ${accuracy}%</strong>
+        `;
+    }
+
+    initTable();
+</script>
+
+</body>
+</html>
