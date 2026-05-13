@@ -2,18 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Roulette Strategy Pro - Unit & Spin Logic</title>
+    <title>Roulette Strict Pair Predictor</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { max-width: 1100px; width: 100%; }
+        .container { max-width: 1000px; width: 100%; }
         
-        /* European Table */
         .roulette-table { 
-            display: grid; 
-            grid-template-columns: 60px repeat(12, 1fr); 
-            gap: 4px; background: #064e3b; 
-            padding: 15px; border: 4px solid #334155; 
-            border-radius: 12px; margin-bottom: 20px;
+            display: grid; grid-template-columns: 60px repeat(12, 1fr); 
+            gap: 4px; background: #064e3b; padding: 15px; 
+            border: 4px solid #334155; border-radius: 12px; margin-bottom: 20px;
         }
         .cell { 
             aspect-ratio: 1/1.3; display: flex; align-items: center; justify-content: center; 
@@ -23,31 +20,28 @@
         .green { background: #15803d; grid-row: span 3; aspect-ratio: auto; }
         .red { background: #b91c1c; }
         .black { background: #0f172a; }
-        .highlight { border: 3px solid #fbbf24; box-shadow: 0 0 20px #fbbf24; transform: scale(1.04); z-index: 10; }
+        .highlight { border: 3px solid #fbbf24; box-shadow: 0 0 20px #fbbf24; transform: scale(1.05); z-index: 10; }
+        .multiple-of-3 { opacity: 0.4; cursor: not-allowed; }
 
         .dashboard { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
-        .panel { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .panel { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; }
         
-        .prediction-display { font-size: 2.2rem; color: #fbbf24; text-align: center; font-weight: 800; margin: 15px 0; min-height: 80px; }
-        .unit-badge { background: #1d4ed8; color: white; padding: 5px 15px; border-radius: 20px; font-size: 1.2rem; margin-top: 10px; display: inline-block; }
+        .prediction-display { font-size: 2.5rem; color: #fbbf24; text-align: center; font-weight: 800; margin: 15px 0; }
+        .unit-badge { background: #1d4ed8; color: white; padding: 8px 20px; border-radius: 20px; font-size: 1.4rem; font-weight: bold; }
         
-        .status-bar { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; color: #94a3b8; }
-        .stop-msg { color: #ef4444; font-size: 1.5rem; text-align: center; animation: blink 1s infinite; }
+        .status-bar { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; color: #94a3b8; width: 100%; }
+        .stop-msg { color: #ef4444; font-size: 2rem; text-align: center; font-weight: bold; border: 2px solid #ef4444; padding: 20px; border-radius: 10px; }
         
-        button { background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; margin-bottom: 8px; }
+        button { background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 8px; }
         button:hover { background: #2563eb; }
-        button.empty-btn { background: #64748b; }
-        button.empty-btn:hover { background: #475569; }
-        
-        textarea { width: 100%; height: 100px; background: #0f172a; color: #10b981; border: 1px solid #334155; padding: 10px; border-radius: 8px; resize: none; }
-        @keyframes blink { 50% { opacity: 0; } }
+        .history-box { font-size: 0.85rem; color: #64748b; margin-top: 15px; background: #0f172a; padding: 10px; border-radius: 5px; min-height: 40px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="status-bar">
-        <div id="spinCounter">SPIN: 0 / 65</div>
+        <div id="spinCounter">VALID BET SPINS: 0 / 65</div>
         <div id="sessionStatus">SESSION ACTIVE</div>
     </div>
 
@@ -57,57 +51,52 @@
 
     <div class="dashboard">
         <div class="panel">
-            <div id="stopContainer">
-                <div style="text-align:center; font-size: 0.9rem; color: #94a3b8;">PREDICTION & RECOMMENDED UNIT</div>
+            <div id="mainDisplay">
+                <div style="text-align:center; font-size: 0.9rem; color: #94a3b8; letter-spacing: 1px;">NEXT PREDICTION</div>
                 <div class="prediction-display" id="predictionText">--</div>
-                <div style="text-align:center" id="unitDisplay"></div>
+                <div style="text-align:center; height: 50px;" id="unitDisplay"></div>
             </div>
-            <button class="empty-btn" onclick="addEmptySpin()">+ Add Empty (Waiting) Spin</button>
-            <button style="background:#dc2626" onclick="resetSession()">Reset Session</button>
-            <div id="historyText" style="font-size: 0.85rem; color: #64748b; margin-top: 15px; word-break: break-all;">History: </div>
+            <button style="background:#64748b; margin-top: 20px;" onclick="addEmptySpin()">+ Add Empty (Waiting) Spin</button>
+            <button style="background:#dc2626" onclick="window.location.reload()">Reset Session</button>
+            <div class="history-box" id="historyText">History: </div>
         </div>
 
         <div class="panel">
-            <h3>Bulk Simulation</h3>
-            <textarea id="bulkData" placeholder="Paste roulette numbers..."></textarea>
-            <button onclick="simulate()">Run Accuracy & Unit Test</button>
-            <div id="results" style="margin-top:10px; font-size: 0.9rem;"></div>
+            <h3 style="margin-top:0">Instructions</h3>
+            <ul style="font-size: 0.9rem; color: #cbd5e1; padding-left: 20px;">
+                <li>Multiples of 3 are <b>Excluded</b>.</li>
+                <li>Excluded numbers do <b>not</b> count toward the 65 spin limit.</li>
+                <li>Spins 1-5: Observation (No Units).</li>
+                <li>Spins 6+: Follow displayed Units.</li>
+            </ul>
         </div>
     </div>
 </div>
 
 <script>
-    // Unit Progression from your CSV
+    // Progression for VALID spins only
     const unitProgression = {
-        1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10, 9: 10, 10: 10,
-        11: 20, 12: 20, 13: 20, 14: 20, 15: 20, 16: 20, 17: 20, 18: 20, 19: 20, 20: 20,
-        21: 30, 22: 30, 23: 30, 24: 30, 25: 30, 26: 40, 27: 40, 28: 50, 29: 50, 30: 60,
-        31: 60, 32: 70, 33: 80, 34: 90, 35: 100, 36: 100, 37: 100, 38: 100, 39: 100, 40: 100,
-        41: 100, 42: 100, 43: 100, 44: 100, 45: 100, 46: 110, 47: 110, 48: 120, 49: 120, 50: 130,
-        51: 130, 52: 140, 53: 140, 54: 150, 55: 150, 56: 160, 57: 160, 58: 170, 59: 170, 60: 170,
-        61: 180, 62: 180, 63: 190, 64: 200, 65: 200
+        1:10, 2:10, 3:10, 4:10, 5:10, 6:10, 7:10, 8:10, 9:10, 10:10,
+        11:20, 12:20, 13:20, 14:20, 15:20, 16:20, 17:20, 18:20, 19:20, 20:20,
+        21:30, 22:30, 23:30, 24:30, 25:30, 26:40, 27:40, 28:50, 29:50, 30:60,
+        31:60, 32:70, 33:80, 34:90, 35:100, 36:100, 37:100, 38:100, 39:100, 40:100,
+        41:100, 42:100, 43:100, 44:100, 45:100, 46:110, 47:110, 48:120, 49:120, 50:130,
+        51:130, 52:140, 53:140, 54:150, 55:150, 56:160, 57:160, 58:170, 59:170, 60:170,
+        61:180, 62:180, 63:190, 64:200, 65:200
     };
 
-    // Strict Pair Logic + Specific 1-8 Pair
-    const basePairs = [
-        [1, 7], [1, 8], [2, 8], [4, 10], [5, 11], [7, 13], [8, 14], 
-        [10, 16], [11, 17], [13, 19], [14, 20], [16, 22], [17, 23], 
-        [19, 25], [20, 26], [22, 28], [23, 29], [25, 31], [26, 32], 
-        [28, 34], [29, 35]
-    ];
-
-    const map = {};
-    basePairs.forEach(([a, b]) => {
-        if (!map[a]) map[a] = new Set();
-        if (!map[b]) map[b] = new Set();
-        map[a].add(b);
-        map[b].add(a);
-    });
+    // Strict 1-to-1 Mapping based on your patterns
+    const strictPairs = {
+        1:7, 2:8, 4:10, 5:11, 7:13, 8:14, 10:16, 11:17, 13:19, 14:20, 
+        16:22, 17:23, 19:25, 20:26, 22:28, 23:29, 25:31, 26:32, 28:34, 29:35,
+        // Reverse mapping for 1-to-1 logic
+        7:1, 8:2, 10:4, 11:5, 13:7, 14:8, 16:10, 17:11, 19:13, 20:14,
+        22:16, 23:17, 25:19, 26:20, 28:22, 29:23, 31:25, 32:26, 34:28, 35:29
+    };
 
     let history = [];
-    let spinCount = 0;
-    let maxSpins = 65;
-    let emptySpinsUsed = 0;
+    let validSpinCount = 0;
+    let maxValidSpins = 65;
     let isStopped = false;
 
     function buildTable() {
@@ -115,10 +104,12 @@
         const reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
         const rows = [[], [], []];
         for (let i = 1; i <= 36; i++) rows[(3 - (i % 3)) % 3].push(i);
+        
         [0, 1, 2].forEach(rIdx => {
             rows[rIdx].sort((a,b) => a-b).forEach(num => {
                 const div = document.createElement('div');
-                div.className = `cell ${reds.includes(num) ? 'red' : 'black'}`;
+                const isMult3 = (num % 3 === 0);
+                div.className = `cell ${reds.includes(num) ? 'red' : 'black'} ${isMult3 ? 'multiple-of-3' : ''}`;
                 div.id = `num-${num}`;
                 div.innerText = num;
                 div.style.gridRow = rIdx + 1;
@@ -130,81 +121,64 @@
 
     function handleInput(val) {
         if (isStopped) return;
-        spinCount++;
+
+        // Rule: Multiples of 3 do not count toward spin logic
+        if (val % 3 === 0 && val !== 0) {
+            history.push(`(${val})`);
+            updateDisplay(val, true);
+            return;
+        }
+
+        validSpinCount++;
         history.push(val);
-        updateUI(val);
+        updateDisplay(val, false);
     }
 
     function addEmptySpin() {
         if (isStopped) return;
-        spinCount++;
-        emptySpinsUsed++;
-        if (emptySpinsUsed >= 1) maxSpins = 70; // Extend if waiting is used
-        history.push("Empty");
-        updateUI(null);
+        validSpinCount++;
+        maxValidSpins = 70; // Increase limit if empty spin used
+        history.push("E");
+        updateDisplay(null, false);
     }
 
-    function updateUI(lastNum) {
+    function updateDisplay(lastNum, isExcluded) {
         const pText = document.getElementById('predictionText');
         const uDisp = document.getElementById('unitDisplay');
         const sCount = document.getElementById('spinCounter');
-        
+
         document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
-        
-        if (spinCount >= maxSpins) {
+
+        if (validSpinCount >= maxValidSpins) {
             isStopped = true;
-            document.getElementById('stopContainer').innerHTML = `<div class="stop-msg">STOP - SESSION ENDED</div>`;
-            document.getElementById('sessionStatus').innerText = "LIMIT REACHED";
+            document.getElementById('mainDisplay').innerHTML = `<div class="stop-msg">STOP - SESSION ENDED</div>`;
             return;
         }
 
-        sCount.innerText = `SPIN: ${spinCount} / ${maxSpins}`;
+        sCount.innerText = `VALID BET SPINS: ${validSpinCount} / ${maxValidSpins}`;
 
-        if (lastNum !== null) {
-            const preds = map[lastNum] ? Array.from(map[lastNum]) : null;
-            if (preds) {
-                pText.innerHTML = `${lastNum} <span style="color:#64748b">➔</span> ${preds.join(', ')}`;
-                preds.forEach(p => document.getElementById(`num-${p}`).classList.add('highlight'));
+        if (isExcluded) {
+            pText.innerHTML = `<span style="color:#64748b; font-size:1.5rem">Multiple of 3: Paused</span>`;
+            uDisp.innerHTML = "";
+        } else {
+            const prediction = strictPairs[lastNum];
+            if (prediction) {
+                pText.innerHTML = `${lastNum} <span style="color:#64748b">➔</span> ${prediction}`;
+                document.getElementById(`num-${prediction}`).classList.add('highlight');
             } else {
-                pText.innerText = `${lastNum} (No Pred)`;
+                pText.innerText = lastNum === null ? "Waiting..." : "--";
             }
-        } else {
-            pText.innerText = "Waiting...";
-        }
 
-        // Unit Logic: First 5 results no unit. 6th onwards show unit.
-        if (spinCount > 5) {
-            const unit = unitProgression[spinCount] || unitProgression[65];
-            uDisp.innerHTML = `<div class="unit-badge">Place ${unit} Units</div>`;
-        } else {
-            uDisp.innerHTML = `<span style="color:#64748b">Observation Phase (Spins 1-5)</span>`;
-        }
-
-        document.getElementById('historyText').innerText = "History: " + history.slice(-15).join(', ');
-    }
-
-    function resetSession() {
-        location.reload();
-    }
-
-    function simulate() {
-        const data = document.getElementById('bulkData').value;
-        const nums = data.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
-        let resultsHtml = "<h4>Simulation Report:</h4>";
-        
-        for (let i = 0; i < Math.min(nums.length, 65); i++) {
-            const current = nums[i];
-            const next = nums[i+1];
-            const units = (i + 1) > 5 ? (unitProgression[i + 1] || 200) : "N/A";
-            const preds = map[current] ? Array.from(map[current]) : [];
-            const isHit = preds.includes(next);
-            
-            if (isHit) {
-                resultsHtml += `<div style="color:#10b981">Spin ${i+1}: HIT! (${current}➔${next}) at ${units} units</div>`;
-                break; // Stop on hit
+            // Unit logic: Only show after 5th valid spin
+            if (validSpinCount > 5) {
+                const unit = unitProgression[validSpinCount] || 200;
+                uDisp.innerHTML = `<span class="unit-badge">Unit: ${unit}</span>`;
+            } else {
+                uDisp.innerHTML = `<span style="color:#64748b">Observation (Spin ${validSpinCount}/5)</span>`;
             }
         }
-        document.getElementById('results').innerHTML = resultsHtml;
+
+        document.getElementById('historyText').innerText = "History: " + history.slice(-20).join(', ');
     }
 
     buildTable();
