@@ -2,149 +2,212 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roulette Predictor - Reciprocal Mode</title>
+    <title>Roulette Strategy Pro - Unit & Spin Logic</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #e0e0e0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { max-width: 1000px; width: 100%; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { max-width: 1100px; width: 100%; }
         
-        /* European Roulette Table */
-        .roulette-table { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; background: #064e3b; padding: 15px; border: 5px solid #3d3d3d; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .cell { aspect-ratio: 1/1.4; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; border-radius: 4px; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); }
-        .red { background: #b91c1c; }
-        .black { background: #171717; }
+        /* European Table */
+        .roulette-table { 
+            display: grid; 
+            grid-template-columns: 60px repeat(12, 1fr); 
+            gap: 4px; background: #064e3b; 
+            padding: 15px; border: 4px solid #334155; 
+            border-radius: 12px; margin-bottom: 20px;
+        }
+        .cell { 
+            aspect-ratio: 1/1.3; display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; cursor: pointer; border-radius: 6px; 
+            border: 1px solid rgba(255,255,255,0.1); transition: 0.2s;
+        }
         .green { background: #15803d; grid-row: span 3; aspect-ratio: auto; }
-        .highlight { border: 3px solid #facc15; box-shadow: 0 0 20px #facc15; transform: scale(1.05); z-index: 10; color: #fff; }
+        .red { background: #b91c1c; }
+        .black { background: #0f172a; }
+        .highlight { border: 3px solid #fbbf24; box-shadow: 0 0 20px #fbbf24; transform: scale(1.04); z-index: 10; }
 
-        .panel { background: #1f2937; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #374151; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        textarea { width: 100%; height: 120px; background: #111827; color: #10b981; border: 1px solid #4b5563; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 1rem; resize: none; }
-        button { background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin-top: 15px; font-weight: 600; transition: background 0.2s; }
-        button:hover { background: #1d4ed8; }
+        .dashboard { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+        .panel { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         
-        .prediction-box { font-size: 1.8rem; color: #fbbf24; margin: 15px 0; text-align: center; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px; }
-        .history-tag { display: inline-block; padding: 4px 8px; background: #374151; border-radius: 4px; margin-right: 5px; margin-bottom: 5px; font-size: 0.85rem; }
+        .prediction-display { font-size: 2.2rem; color: #fbbf24; text-align: center; font-weight: 800; margin: 15px 0; min-height: 80px; }
+        .unit-badge { background: #1d4ed8; color: white; padding: 5px 15px; border-radius: 20px; font-size: 1.2rem; margin-top: 10px; display: inline-block; }
+        
+        .status-bar { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; color: #94a3b8; }
+        .stop-msg { color: #ef4444; font-size: 1.5rem; text-align: center; animation: blink 1s infinite; }
+        
+        button { background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; margin-bottom: 8px; }
+        button:hover { background: #2563eb; }
+        button.empty-btn { background: #64748b; }
+        button.empty-btn:hover { background: #475569; }
+        
+        textarea { width: 100%; height: 100px; background: #0f172a; color: #10b981; border: 1px solid #334155; padding: 10px; border-radius: 8px; resize: none; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 style="text-align: center; color: #fff;">Roulette Predictive Analysis</h1>
-
-    <div id="table" class="roulette-table">
-        <div class="cell green" onclick="inputNumber(0)">0</div>
-        </div>
-
-    <div class="panel">
-        <div class="prediction-box" id="predictionDisplay">Select a number to begin...</div>
-        <div id="historyDisplay" style="margin-top: 10px;"></div>
+    <div class="status-bar">
+        <div id="spinCounter">SPIN: 0 / 65</div>
+        <div id="sessionStatus">SESSION ACTIVE</div>
     </div>
 
-    <div class="panel">
-        <h3>Bulk Simulation & Backtesting</h3>
-        <p style="font-size: 0.9rem; color: #9ca3af;">Enter data (e.g. 1, 7, 8, 2, 14...) to test sequence accuracy based on your custom pairs.</p>
-        <textarea id="bulkInput" placeholder="Paste roulette history here..."></textarea>
-        <button onclick="runSimulation()">Run Backtest</button>
-        <div id="simResults" class="stats-grid"></div>
+    <div id="table" class="roulette-table">
+        <div class="cell green" onclick="handleInput(0)">0</div>
+    </div>
+
+    <div class="dashboard">
+        <div class="panel">
+            <div id="stopContainer">
+                <div style="text-align:center; font-size: 0.9rem; color: #94a3b8;">PREDICTION & RECOMMENDED UNIT</div>
+                <div class="prediction-display" id="predictionText">--</div>
+                <div style="text-align:center" id="unitDisplay"></div>
+            </div>
+            <button class="empty-btn" onclick="addEmptySpin()">+ Add Empty (Waiting) Spin</button>
+            <button style="background:#dc2626" onclick="resetSession()">Reset Session</button>
+            <div id="historyText" style="font-size: 0.85rem; color: #64748b; margin-top: 15px; word-break: break-all;">History: </div>
+        </div>
+
+        <div class="panel">
+            <h3>Bulk Simulation</h3>
+            <textarea id="bulkData" placeholder="Paste roulette numbers..."></textarea>
+            <button onclick="simulate()">Run Accuracy & Unit Test</button>
+            <div id="results" style="margin-top:10px; font-size: 0.9rem;"></div>
+        </div>
     </div>
 </div>
 
 <script>
-    // Updated Logic: Based on your request to use pairs (1 predicts 7, 7 predicts 1, etc.)
-    // Multiples of 3 (-1) are excluded as triggers.
-    const rawPairs = [
+    // Unit Progression from your CSV
+    const unitProgression = {
+        1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10, 9: 10, 10: 10,
+        11: 20, 12: 20, 13: 20, 14: 20, 15: 20, 16: 20, 17: 20, 18: 20, 19: 20, 20: 20,
+        21: 30, 22: 30, 23: 30, 24: 30, 25: 30, 26: 40, 27: 40, 28: 50, 29: 50, 30: 60,
+        31: 60, 32: 70, 33: 80, 34: 90, 35: 100, 36: 100, 37: 100, 38: 100, 39: 100, 40: 100,
+        41: 100, 42: 100, 43: 100, 44: 100, 45: 100, 46: 110, 47: 110, 48: 120, 49: 120, 50: 130,
+        51: 130, 52: 140, 53: 140, 54: 150, 55: 150, 56: 160, 57: 160, 58: 170, 59: 170, 60: 170,
+        61: 180, 62: 180, 63: 190, 64: 200, 65: 200
+    };
+
+    // Strict Pair Logic + Specific 1-8 Pair
+    const basePairs = [
         [1, 7], [1, 8], [2, 8], [4, 10], [5, 11], [7, 13], [8, 14], 
         [10, 16], [11, 17], [13, 19], [14, 20], [16, 22], [17, 23], 
         [19, 25], [20, 26], [22, 28], [23, 29], [25, 31], [26, 32], 
-        [28, 34], [29, 35], [31, 25], [32, 26], [34, 28], [35, 29]
+        [28, 34], [29, 35]
     ];
 
-    // Build the prediction map dynamically (Mirror/Reciprocal Logic)
-    const predictionMap = {};
-    rawPairs.forEach(([a, b]) => {
-        if (!predictionMap[a]) predictionMap[a] = new Set();
-        if (!predictionMap[b]) predictionMap[b] = new Set();
-        predictionMap[a].add(b);
-        predictionMap[b].add(a);
+    const map = {};
+    basePairs.forEach(([a, b]) => {
+        if (!map[a]) map[a] = new Set();
+        if (!map[b]) map[b] = new Set();
+        map[a].add(b);
+        map[b].add(a);
     });
 
-    const reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
     let history = [];
+    let spinCount = 0;
+    let maxSpins = 65;
+    let emptySpinsUsed = 0;
+    let isStopped = false;
 
-    function initTable() {
+    function buildTable() {
         const table = document.getElementById('table');
-        // Arrange numbers in 3 rows like a real table
-        for (let i = 1; i <= 36; i++) {
-            const div = document.createElement('div');
-            div.className = `cell ${reds.includes(i) ? 'red' : 'black'}`;
-            div.id = `cell-${i}`;
-            div.innerText = i;
-            div.onclick = () => inputNumber(i);
-            table.appendChild(div);
-        }
+        const reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+        const rows = [[], [], []];
+        for (let i = 1; i <= 36; i++) rows[(3 - (i % 3)) % 3].push(i);
+        [0, 1, 2].forEach(rIdx => {
+            rows[rIdx].sort((a,b) => a-b).forEach(num => {
+                const div = document.createElement('div');
+                div.className = `cell ${reds.includes(num) ? 'red' : 'black'}`;
+                div.id = `num-${num}`;
+                div.innerText = num;
+                div.style.gridRow = rIdx + 1;
+                div.onclick = () => handleInput(num);
+                table.appendChild(div);
+            });
+        });
     }
 
-    function inputNumber(num) {
-        history.push(num);
-        updateUI(num);
+    function handleInput(val) {
+        if (isStopped) return;
+        spinCount++;
+        history.push(val);
+        updateUI(val);
+    }
+
+    function addEmptySpin() {
+        if (isStopped) return;
+        spinCount++;
+        emptySpinsUsed++;
+        if (emptySpinsUsed >= 1) maxSpins = 70; // Extend if waiting is used
+        history.push("Empty");
+        updateUI(null);
     }
 
     function updateUI(lastNum) {
-        const display = document.getElementById('predictionDisplay');
-        const histDisplay = document.getElementById('historyDisplay');
+        const pText = document.getElementById('predictionText');
+        const uDisp = document.getElementById('unitDisplay');
+        const sCount = document.getElementById('spinCounter');
         
         document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
-        document.getElementById(`cell-${lastNum}`)?.classList.add('highlight');
-
-        const predictions = predictionMap[lastNum] ? Array.from(predictionMap[lastNum]) : null;
         
-        if (predictions && predictions.length > 0) {
-            display.innerHTML = `Input: ${lastNum} <span style="color:#fff">➔</span> Predict: <span style="color:#60a5fa">${predictions.join(', ')}</span>`;
-            predictions.forEach(p => {
-                document.getElementById(`cell-${p}`)?.classList.add('highlight');
-            });
-        } else {
-            display.innerText = `Input: ${lastNum} (No Data / -1 Rule)`;
+        if (spinCount >= maxSpins) {
+            isStopped = true;
+            document.getElementById('stopContainer').innerHTML = `<div class="stop-msg">STOP - SESSION ENDED</div>`;
+            document.getElementById('sessionStatus').innerText = "LIMIT REACHED";
+            return;
         }
 
-        histDisplay.innerHTML = history.slice(-15).map(n => `<span class="history-tag">${n}</span>`).join('');
+        sCount.innerText = `SPIN: ${spinCount} / ${maxSpins}`;
+
+        if (lastNum !== null) {
+            const preds = map[lastNum] ? Array.from(map[lastNum]) : null;
+            if (preds) {
+                pText.innerHTML = `${lastNum} <span style="color:#64748b">➔</span> ${preds.join(', ')}`;
+                preds.forEach(p => document.getElementById(`num-${p}`).classList.add('highlight'));
+            } else {
+                pText.innerText = `${lastNum} (No Pred)`;
+            }
+        } else {
+            pText.innerText = "Waiting...";
+        }
+
+        // Unit Logic: First 5 results no unit. 6th onwards show unit.
+        if (spinCount > 5) {
+            const unit = unitProgression[spinCount] || unitProgression[65];
+            uDisp.innerHTML = `<div class="unit-badge">Place ${unit} Units</div>`;
+        } else {
+            uDisp.innerHTML = `<span style="color:#64748b">Observation Phase (Spins 1-5)</span>`;
+        }
+
+        document.getElementById('historyText').innerText = "History: " + history.slice(-15).join(', ');
     }
 
-    function runSimulation() {
-        const input = document.getElementById('bulkInput').value;
-        const nums = input.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+    function resetSession() {
+        location.reload();
+    }
+
+    function simulate() {
+        const data = document.getElementById('bulkData').value;
+        const nums = data.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+        let resultsHtml = "<h4>Simulation Report:</h4>";
         
-        let hits = 0;
-        let totalOpportunities = 0;
-
-        for (let i = 0; i < nums.length - 1; i++) {
+        for (let i = 0; i < Math.min(nums.length, 65); i++) {
             const current = nums[i];
-            const next = nums[i + 1];
-            const predicted = predictionMap[current];
-
-            if (predicted) {
-                totalOpportunities++;
-                if (predicted.has(next)) {
-                    hits++;
-                }
+            const next = nums[i+1];
+            const units = (i + 1) > 5 ? (unitProgression[i + 1] || 200) : "N/A";
+            const preds = map[current] ? Array.from(map[current]) : [];
+            const isHit = preds.includes(next);
+            
+            if (isHit) {
+                resultsHtml += `<div style="color:#10b981">Spin ${i+1}: HIT! (${current}➔${next}) at ${units} units</div>`;
+                break; // Stop on hit
             }
         }
-
-        const accuracy = totalOpportunities > 0 ? ((hits / totalOpportunities) * 100).toFixed(2) : 0;
-        
-        document.getElementById('simResults').innerHTML = `
-            <div class="panel" style="margin-bottom:0">
-                <div style="font-size: 0.8rem; color: #9ca3af;">TOTAL PREDICTIONS</div>
-                <div style="font-size: 1.5rem; font-weight: bold;">${totalOpportunities}</div>
-            </div>
-            <div class="panel" style="margin-bottom:0">
-                <div style="font-size: 0.8rem; color: #9ca3af;">HITS / ACCURACY</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #10b981;">${hits} (${accuracy}%)</div>
-            </div>
-        `;
+        document.getElementById('results').innerHTML = resultsHtml;
     }
 
-    initTable();
+    buildTable();
 </script>
 
 </body>
